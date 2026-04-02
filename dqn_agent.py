@@ -53,10 +53,10 @@ class ReplayBuffer:
         return len(self.buffer)
 
 
-# dqn agent with online and target networks, replay buffer warmup, epsilon greedy, and periodic target sync
+# dqn and double dqn agent with replay buffer warmup, epsilon greedy, and periodic target sync
 class DQNAgent:
 
-    # initialize both networks, optimizer, replay buffer, and all hyperparameters including warmup size
+    # initialize both networks, optimizer, replay buffer, and all hyperparameters including double dqn flag
     def __init__(
         self,
         state_size=16,
@@ -69,9 +69,11 @@ class DQNAgent:
         buffer_size=100000,
         batch_size=64,
         target_update_freq=100,
-        warmup_size=1000
+        warmup_size=1000,
+        use_double_dqn=False
     ):
         self.action_size = action_size
+        self.use_double_dqn = use_double_dqn
         self.gamma = gamma
         self.epsilon = epsilon_start
         self.epsilon_end = epsilon_end
@@ -104,7 +106,7 @@ class DQNAgent:
     def store_transition(self, state, action, reward, next_state, done):
         self.replay_buffer.push(state, action, reward, next_state, done)
 
-    # sample a minibatch, compute td targets using the target network, and update online network
+    # sample a minibatch, compute td targets, and update online network weights
     def update(self):
         if len(self.replay_buffer) < self.warmup_size:
             return None
@@ -120,7 +122,12 @@ class DQNAgent:
         current_q = self.online_net(states_t).gather(1, actions_t.unsqueeze(1)).squeeze(1)
 
         with torch.no_grad():
-            next_q = self.target_net(next_states_t).max(1)[0]
+            # use online net to select actions and target net to evaluate when double dqn is on
+            if self.use_double_dqn:
+                best_actions = self.online_net(next_states_t).argmax(1, keepdim=True)
+                next_q = self.target_net(next_states_t).gather(1, best_actions).squeeze(1)
+            else:
+                next_q = self.target_net(next_states_t).max(1)[0]
             target_q = rewards_t + self.gamma * next_q * (1 - dones_t)
 
         loss = self.loss_fn(current_q, target_q)
@@ -138,21 +145,23 @@ class DQNAgent:
 
         return loss.item()
 
-    # serialize network weights, optimizer state, epsilon, and optional episode number to a file
+    # serialize network weights, optimizer state, epsilon, episode, and algorithm flag to a file
     def save(self, path, episode=None):
         torch.save({
             'online_net': self.online_net.state_dict(),
             'target_net': self.target_net.state_dict(),
             'optimizer': self.optimizer.state_dict(),
             'epsilon': self.epsilon,
-            'episode': episode
+            'episode': episode,
+            'use_double_dqn': self.use_double_dqn
         }, path)
 
-    # restore network weights, optimizer state, and epsilon, then return the saved episode number
+    # restore network weights, optimizer state, epsilon, and algorithm flag, then return episode number
     def load(self, path):
         checkpoint = torch.load(path, map_location=self.device, weights_only=True)
         self.online_net.load_state_dict(checkpoint['online_net'])
         self.target_net.load_state_dict(checkpoint['target_net'])
         self.optimizer.load_state_dict(checkpoint['optimizer'])
         self.epsilon = checkpoint['epsilon']
+        self.use_double_dqn = checkpoint.get('use_double_dqn', False)
         return checkpoint.get('episode', 0)
