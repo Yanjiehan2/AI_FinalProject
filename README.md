@@ -8,9 +8,6 @@ A PyTorch implementation of DQN and Double DQN agents trained to play the 2048 p
 .
 ├── game_env.py        # 2048 game environment
 ├── dqn_agent.py       # DQN and Double DQN agent with replay buffer and target network
-├── train.py           # combined training loop for all 8 groups, random baseline, and parameter study
-├── evaluate.py        # combined evaluation, plotting, GIF generation, and parameter study analysis
-├── main.py            # entry point: runs combined training then evaluation
 ├── train_part_a.py    # Part A training: DQN Groups 1–4
 ├── eval_part_a.py     # Part A evaluation and plots for Groups 1–4
 ├── train_part_b.py    # Part B training: Double DQN Groups 5–8 and random baseline
@@ -31,19 +28,6 @@ pip install torch numpy matplotlib Pillow
 ```
 
 ## Running
-
-### Full pipeline (training + evaluation, all groups combined)
-
-```bash
-python main.py
-```
-
-### Combined training or evaluation only
-
-```bash
-python train.py
-python evaluate.py
-```
 
 ### Part A: DQN Groups 1–4
 
@@ -112,23 +96,6 @@ All groups use standard DQN. One penalty is varied at a time while the other is 
 | PS6         | none              | −10                  | |
 
 ## Outputs
-
-### Combined pipeline (`main.py` / `train.py` / `evaluate.py`)
-
-- `checkpoints/group_<N>.pth` — final model checkpoint for each trained group (1–8 and PS groups)
-- `checkpoints/group_<N>_ep<E>.pth` — periodic checkpoint saved every 500 episodes
-- `results/group_<N>_partial.pkl` — partial training data saved alongside each periodic checkpoint
-- `results/training_results.pkl` — per-episode rewards, scores, max tiles, and action counts for all groups
-- `results/param_study_results.pkl` — training results for the parameter study groups
-- `results/eval_results.pkl` — evaluation scores and max tiles for all groups
-- `plots/avg_score.png` — bar chart of mean score over 100 evaluation episodes
-- `plots/avg_max_tile_log2.png` — bar chart of mean log2 of the highest tile reached
-- `plots/reward_curves.png` — smoothed training reward curves for all eight trained groups
-- `plots/action_distribution.png` — 2×4 stacked area charts showing per-action proportions
-- `plots/qvalue_heatmap.png` — 2×4 Q-value bar charts for a fixed board state
-- `plots/replay_group_<N>.gif` — animated gameplay replay for each trained group
-- `plots/replay_random.gif` — animated gameplay replay for the random baseline
-- `plots/parameter_study.png` — line plots of score vs penalty magnitude
 
 ### Part A outputs
 
